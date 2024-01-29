@@ -22,20 +22,29 @@ mongoose.connect('mongodb+srv://phong99tb:8b8V6aJF65kbbIr0@cluster-mongo-test.yu
         const UserSchema = new Schema({
             id: Schema.Types.ObjectId,
             name: String,
+            moneyUser: Number
         });
-
         const User = mongoose.model('User', UserSchema);
 
         const DepositSchema = new Schema({
             id: Schema.Types.ObjectId,
             idUser: Schema.Types.ObjectId,
-            money: Number,
-            date: String
+            moneyDeposit: Number,
+            date: String,
+            note: String
         });
-
         const Deposit = mongoose.model('Deposit', DepositSchema);
 
-        app.get('/list', async (req, res) => {
+        const SpendSchema = new Schema({
+            id: Schema.Types.ObjectId,
+            idUser: Schema.Types.ObjectId,
+            moneySpend: Number,
+            date: String,
+            note: String
+        });
+        const Spend = mongoose.model('Spend', SpendSchema);
+
+        app.get('/listUser', async (req, res) => {
             try {
                 const users = await User.find({});
                 res.json(users);
@@ -47,7 +56,7 @@ mongoose.connect('mongodb+srv://phong99tb:8b8V6aJF65kbbIr0@cluster-mongo-test.yu
 
         app.post('/addUser', async (req, res) => {
             try {
-                const { name } = req.body;
+                const { name, moneyUser } = req.body;
 
                 // Kiểm tra nếu không có tên
                 if (!name) {
@@ -55,7 +64,7 @@ mongoose.connect('mongodb+srv://phong99tb:8b8V6aJF65kbbIr0@cluster-mongo-test.yu
                 }
 
                 // Tạo người dùng mới
-                const newUser = new User({ name });
+                const newUser = new User({ name, moneyUser });
                 console.log(newUser);
 
                 // Lưu vào cơ sở dữ liệu
@@ -64,6 +73,38 @@ mongoose.connect('mongodb+srv://phong99tb:8b8V6aJF65kbbIr0@cluster-mongo-test.yu
                 res.json({ message: 'Người dùng đã được thêm thành công.', user: newUser });
             } catch (error) {
                 console.error('Lỗi khi thêm người dùng:', error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+
+        app.put('/updateUser/:id', async (req, res) => {
+            try {
+                const userId = req.params.id;
+
+                // Kiểm tra nếu userId không hợp lệ
+                if (!mongoose.Types.ObjectId.isValid(userId)) {
+                    return res.status(400).json({ error: 'ID không hợp lệ.' });
+                }
+
+                const { name } = req.body;
+                console.log(req);
+
+                // Kiểm tra nếu newName không được cung cấp
+                if (!name) {
+                    return res.status(400).json({ error: 'Tên mới không được để trống.' });
+                }
+
+                // Sử dụng phương thức updateOne để sửa đổi người dùng
+                const result = await User.updateOne({ _id: userId }, { $set: { name: name } });
+
+                // Kiểm tra nếu không có người dùng nào được sửa đổi
+                if (result.nModified === 0) {
+                    return res.status(404).json({ error: 'Không tìm thấy người dùng với ID đã cho.' });
+                }
+
+                res.json({ message: 'Người dùng đã được sửa đổi thành công.' });
+            } catch (error) {
+                console.error('Lỗi khi sửa đổi người dùng:', error);
                 res.status(500).send('Internal Server Error');
             }
         });
@@ -104,23 +145,132 @@ mongoose.connect('mongodb+srv://phong99tb:8b8V6aJF65kbbIr0@cluster-mongo-test.yu
 
         app.post('/addDeposit', async (req, res) => {
             try {
-                const { idUser, money, date } = req.body;
-
-                // Kiểm tra nếu không có idUser hoặc money
-                if (!idUser || !money) {
+                const { idUser, moneyDeposit, date, note } = req.body;
+                if (!idUser || !moneyDeposit) {
                     return res.status(400).json({ error: 'idUser và money không được để trống.' });
                 }
-
-                // Tạo giao dịch mới
-                const newDeposit = new Deposit({ idUser, money, date });
-                console.log(newDeposit);
-
-                // Lưu vào cơ sở dữ liệu
+                const newDeposit = new Deposit({ idUser, moneyDeposit, date, note });
                 await newDeposit.save();
-
                 res.json({ message: 'Giao dịch đã được thêm thành công.', deposit: newDeposit });
             } catch (error) {
                 console.error('Lỗi khi thêm giao dịch:', error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+
+        app.delete('/deleteDeposit/:id', async (req, res) => {
+            try {
+                const depositId = req.params.id;
+
+                // Kiểm tra nếu depositId không hợp lệ
+                if (!mongoose.Types.ObjectId.isValid(depositId)) {
+                    return res.status(400).json({ error: 'ID không hợp lệ.' });
+                }
+
+                // Sử dụng phương thức deleteOne để xóa giao dịch
+                const result = await Deposit.deleteOne({ _id: depositId });
+
+                // Kiểm tra nếu không có giao dịch nào được xóa
+                if (result.deletedCount === 0) {
+                    return res.status(404).json({ error: 'Không tìm thấy giao dịch với ID đã cho.' });
+                }
+
+                res.json({ message: 'Giao dịch đã được xóa thành công.' });
+            } catch (error) {
+                console.error('Lỗi khi xóa giao dịch:', error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+
+        app.put('/updateDeposit/:id', async (req, res) => {
+            try {
+                const depositId = req.params.id;
+                if (!mongoose.Types.ObjectId.isValid(depositId)) {
+                    return res.status(400).json({ error: 'ID không hợp lệ.' });
+                }
+                const { moneyDeposit, date, note } = req.body;
+                if (!moneyDeposit) {
+                    return res.status(400).json({ error: 'Số tiền mới không được để trống.' });
+                }
+                const result = await Deposit.updateOne({ _id: depositId }, { $set: { moneyDeposit: moneyDeposit, date: date, note: note } });
+                if (result.nModified === 0) {
+                    return res.status(404).json({ error: 'Không tìm thấy giao dịch với ID đã cho.' });
+                }
+
+                res.json({ message: 'Giao dịch đã được sửa đổi thành công.' });
+            } catch (error) {
+                console.error('Lỗi khi sửa đổi giao dịch:', error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+
+        app.get('/listSpend', async (req, res) => {
+            try {
+                const spend = await Spend.find({});
+                res.json(spend);
+            } catch (error) {
+                console.error('Lỗi khi lấy dữ liệu từ MongoDB:', error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+
+        app.post('/addSpend', async (req, res) => {
+            try {
+                const { idUser, moneySpend, date, note } = req.body;
+                if (!idUser || !moneySpend) {
+                    return res.status(400).json({ error: 'idUser và money không được để trống.' });
+                }
+                const newSpend = new Spend({ idUser, moneySpend, date, note });
+                await newSpend.save();
+                res.json({ message: 'Giao dịch đã được thêm thành công.', spend: newSpend });
+            } catch (error) {
+                console.error('Lỗi khi thêm giao dịch:', error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+
+        app.delete('/deleteSpend/:id', async (req, res) => {
+            try {
+                const spendId = req.params.id;
+
+                // Kiểm tra nếu spendId không hợp lệ
+                if (!mongoose.Types.ObjectId.isValid(spendId)) {
+                    return res.status(400).json({ error: 'ID không hợp lệ.' });
+                }
+
+                // Sử dụng phương thức deleteOne để xóa giao dịch
+                const result = await Spend.deleteOne({ _id: spendId });
+
+                // Kiểm tra nếu không có giao dịch nào được xóa
+                if (result.deletedCount === 0) {
+                    return res.status(404).json({ error: 'Không tìm thấy giao dịch với ID đã cho.' });
+                }
+
+                res.json({ message: 'Giao dịch đã được xóa thành công.' });
+            } catch (error) {
+                console.error('Lỗi khi xóa giao dịch:', error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+
+        app.put('/updateSpend/:id', async (req, res) => {
+            try {
+                const spendId = req.params.id;
+                if (!mongoose.Types.ObjectId.isValid(spendId)) {
+                    return res.status(400).json({ error: 'ID không hợp lệ.' });
+                }
+                const { moneySpend, date, note } = req.body;
+                if (!moneySpend) {
+                    return res.status(400).json({ error: 'Số tiền mới không được để trống.' });
+                }
+                const result = await Spend.updateOne({ _id: spendId }, { $set: { moneySpend: moneySpend, date: date, note: note } });
+                if (result.nModified === 0) {
+                    return res.status(404).json({ error: 'Không tìm thấy giao dịch với ID đã cho.' });
+                }
+
+                res.json({ message: 'Giao dịch đã được sửa đổi thành công.' });
+            } catch (error) {
+                console.error('Lỗi khi sửa đổi giao dịch:', error);
                 res.status(500).send('Internal Server Error');
             }
         });
