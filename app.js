@@ -77,25 +77,22 @@ mongoose.connect('mongodb+srv://phong99tb:8b8V6aJF65kbbIr0@cluster-mongo-test.yu
             }
         });
 
-        app.put('/updateUser/:id', async (req, res) => {
+        app.put('/updateUser', async (req, res) => {
             try {
-                const userId = req.params.id;
-
                 // Kiểm tra nếu userId không hợp lệ
-                if (!mongoose.Types.ObjectId.isValid(userId)) {
+                
+                const { _id, name, moneyUser } = req.body;
+                
+                if (!mongoose.Types.ObjectId.isValid(_id)) {
                     return res.status(400).json({ error: 'ID không hợp lệ.' });
                 }
-
-                const { name } = req.body;
-                console.log(req);
-
                 // Kiểm tra nếu newName không được cung cấp
                 if (!name) {
                     return res.status(400).json({ error: 'Tên mới không được để trống.' });
                 }
 
                 // Sử dụng phương thức updateOne để sửa đổi người dùng
-                const result = await User.updateOne({ _id: userId }, { $set: { name: name } });
+                const result = await User.updateOne({ _id: _id }, { $set: { name: name, moneyUser: moneyUser } });
 
                 // Kiểm tra nếu không có người dùng nào được sửa đổi
                 if (result.nModified === 0) {
@@ -182,17 +179,16 @@ mongoose.connect('mongodb+srv://phong99tb:8b8V6aJF65kbbIr0@cluster-mongo-test.yu
             }
         });
 
-        app.put('/updateDeposit/:id', async (req, res) => {
+        app.put('/updateDeposit', async (req, res) => {
             try {
-                const depositId = req.params.id;
-                if (!mongoose.Types.ObjectId.isValid(depositId)) {
+                const { _id, moneyDeposit, date, note } = req.body;
+                if (!mongoose.Types.ObjectId.isValid(_id)) {
                     return res.status(400).json({ error: 'ID không hợp lệ.' });
                 }
-                const { moneyDeposit, date, note } = req.body;
                 if (!moneyDeposit) {
                     return res.status(400).json({ error: 'Số tiền mới không được để trống.' });
                 }
-                const result = await Deposit.updateOne({ _id: depositId }, { $set: { moneyDeposit: moneyDeposit, date: date, note: note } });
+                const result = await Deposit.updateOne({ _id: _id }, { $set: { moneyDeposit: moneyDeposit, date: date, note: note } });
                 if (result.nModified === 0) {
                     return res.status(404).json({ error: 'Không tìm thấy giao dịch với ID đã cho.' });
                 }
@@ -253,17 +249,16 @@ mongoose.connect('mongodb+srv://phong99tb:8b8V6aJF65kbbIr0@cluster-mongo-test.yu
             }
         });
 
-        app.put('/updateSpend/:id', async (req, res) => {
+        app.put('/updateSpend', async (req, res) => {
             try {
-                const spendId = req.params.id;
-                if (!mongoose.Types.ObjectId.isValid(spendId)) {
+                const { _id, moneySpend, date, note } = req.body;
+                if (!mongoose.Types.ObjectId.isValid(_id)) {
                     return res.status(400).json({ error: 'ID không hợp lệ.' });
                 }
-                const { moneySpend, date, note } = req.body;
                 if (!moneySpend) {
                     return res.status(400).json({ error: 'Số tiền mới không được để trống.' });
                 }
-                const result = await Spend.updateOne({ _id: spendId }, { $set: { moneySpend: moneySpend, date: date, note: note } });
+                const result = await Spend.updateOne({ _id: _id }, { $set: { moneySpend: moneySpend, date: date, note: note } });
                 if (result.nModified === 0) {
                     return res.status(404).json({ error: 'Không tìm thấy giao dịch với ID đã cho.' });
                 }
